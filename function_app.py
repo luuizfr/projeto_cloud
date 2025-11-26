@@ -17,7 +17,7 @@ def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
         response = requests.get(url)
         data = response.json()
 
-        conn_str = os.environ.get["SqlConnectionString"]
+        conn_str = os.environ.get("SqlConnectionString")
         conn = pyodbc.connect(conn_str)
         cursor = conn.cursor()
 
