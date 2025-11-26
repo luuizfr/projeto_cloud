@@ -7,7 +7,7 @@ on:
 
 env:
   AZURE_FUNCTIONAPP_NAME: "NOME_DA_SUA_APP_AQUI" # <--- CONFIRA O NOME NOVAMENTE
-  PYTHON_VERSION: "3.9"
+  PYTHON_VERSION: "3.13"
 
 jobs:
   build-and-deploy:
