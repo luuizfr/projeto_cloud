@@ -35,6 +35,3 @@ jobs:
           app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           package: "."
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
-          # AS LINHAS MÁGICAS ABAIXO:
-          scm-do-build-during-deployment: false
-          enable-oryx-build: false
