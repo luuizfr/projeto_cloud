@@ -6,8 +6,8 @@ on:
       - main
 
 env:
-  AZURE_FUNCTIONAPP_NAME: "NOME_DA_SUA_APP_AQUI" # <--- CONFIRA O NOME NOVAMENTE
-  PYTHON_VERSION: "3.13"
+  AZURE_FUNCTIONAPP_NAME: "cloud-cripto-api" # <--- CONFIRA O NOME NOVAMENTE
+  PYTHON_VERSION: "3.10"
 
 jobs:
   build-and-deploy:
