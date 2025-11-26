@@ -29,8 +29,10 @@ jobs:
           popd
 
       - name: "Deploy to Azure Functions"
-        uses: Azure/Functions-action@v1
+        uses: Azure/functions-action@v1
         with:
           app-name: ${{ env.AZURE_FUNCTIONAPP_NAME }}
           package: "."
           publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE }}
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true
