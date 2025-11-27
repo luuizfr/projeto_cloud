@@ -4,10 +4,33 @@ import requests
 import pymssql
 import os
 import re
+import time
 from datetime import datetime
 from urllib.parse import unquote
 
 app = func.FunctionApp()
+
+def connect_with_retry(connect_params, max_retries=3, retry_delay=5):
+    """Tenta conectar ao SQL Server com retry para erros transitórios"""
+    for attempt in range(max_retries):
+        try:
+            logging.info(f'Tentativa de conexão {attempt + 1}/{max_retries}')
+            conn = pymssql.connect(**connect_params)
+            logging.info('Conexão estabelecida com sucesso')
+            return conn
+        except pymssql.Error as e:
+            error_code = e.args[0] if e.args else None
+            
+            # Erro 40613: Database is not currently available (pode estar pausado ou escalando)
+            # Erro 20009: Unable to connect (erro de conexão transitório)
+            if error_code in (40613, 20009) and attempt < max_retries - 1:
+                wait_time = retry_delay * (attempt + 1)  # Backoff exponencial
+                logging.warning(f'Erro transitório {error_code}. Aguardando {wait_time}s antes de tentar novamente...')
+                time.sleep(wait_time)
+                continue
+            else:
+                raise
+    raise Exception(f'Falha ao conectar após {max_retries} tentativas')
 
 @app.schedule(schedule="0 */10 * * * *", arg_name="myTimer", run_on_startup=True, use_monitor=False)
 def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
@@ -67,7 +90,8 @@ def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
         if port:
             connect_params['port'] = port
         
-        conn = pymssql.connect(**connect_params)
+        # Conecta com retry para erros transitórios
+        conn = connect_with_retry(connect_params, max_retries=3, retry_delay=5)
         cursor = conn.cursor()
 
         timestamp = datetime.now()
@@ -84,9 +108,18 @@ def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
         conn.commit()
         logging.info('Extração de informações de criptomoedas concluída com sucesso')
     except pymssql.Error as e:
+        error_code = e.args[0] if e.args else None
         error_msg = f'Erro de conexão com SQL Server: {str(e)}'
         logging.error(error_msg)
-        logging.error('Verifique: 1) Firewall do Azure SQL permite conexões do Azure Functions, 2) Connection string está correta, 3) Servidor está acessível')
+        
+        if error_code == 40613:
+            logging.error('Erro 40613: O banco de dados pode estar pausado ou temporariamente indisponível.')
+            logging.error('Soluções: 1) Verifique no portal do Azure se o banco está pausado e retome-o, 2) Aguarde alguns segundos e tente novamente (o banco pode estar sendo retomado automaticamente)')
+        elif error_code == 20009:
+            logging.error('Erro 20009: Não foi possível conectar ao servidor.')
+            logging.error('Verifique: 1) Firewall do Azure SQL permite conexões do Azure Services, 2) Connection string está correta, 3) Servidor está acessível')
+        else:
+            logging.error('Verifique: 1) Firewall do Azure SQL permite conexões do Azure Functions, 2) Connection string está correta, 3) Servidor está acessível')
         raise
     except Exception as e:
         logging.error(f'Erro ao extrair informações de criptomoedas: {str(e)}')
