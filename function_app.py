@@ -28,21 +28,46 @@ def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
         database_match = re.search(r'Database=([^;]+)', conn_str, re.IGNORECASE)
         user_match = re.search(r'UID=([^;]+)|User ID=([^;]+)', conn_str, re.IGNORECASE)
         password_match = re.search(r'PWD=([^;]+)|Password=([^;]+)', conn_str, re.IGNORECASE)
+        port_match = re.search(r'Port=([^;]+)', conn_str, re.IGNORECASE)
         
         server = unquote(server_match.group(1)) if server_match else None
         database = unquote(database_match.group(1)) if database_match else None
         user = unquote(user_match.group(1) or user_match.group(2)) if user_match else None
         password = unquote(password_match.group(1) or password_match.group(2)) if password_match else None
+        port = int(port_match.group(1)) if port_match else None
+        
+        # Remove protocolo tcp:// se presente
+        if server and server.startswith('tcp:'):
+            server = server.replace('tcp:', '')
+        if server and server.startswith('//'):
+            server = server.replace('//', '')
+        
+        # Se a porta está no servidor (formato server,port), separa
+        if server and ',' in server:
+            server, port_str = server.split(',', 1)
+            try:
+                port = int(port_str)
+            except ValueError:
+                pass
         
         if not all([server, database, user, password]):
             raise ValueError("Connection string incompleta. Faltam parâmetros obrigatórios (Server, Database, UID/User ID, PWD/Password)")
         
-        conn = pymssql.connect(
-            server=server,
-            database=database,
-            user=user,
-            password=password
-        )
+        logging.info(f'Conectando ao servidor: {server}, database: {database}, porta: {port or "padrão (1433)"}')
+        
+        # Configura parâmetros de conexão
+        connect_params = {
+            'server': server,
+            'database': database,
+            'user': user,
+            'password': password,
+            'timeout': 30
+        }
+        
+        if port:
+            connect_params['port'] = port
+        
+        conn = pymssql.connect(**connect_params)
         cursor = conn.cursor()
 
         timestamp = datetime.now()
@@ -58,6 +83,11 @@ def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
 
         conn.commit()
         logging.info('Extração de informações de criptomoedas concluída com sucesso')
+    except pymssql.Error as e:
+        error_msg = f'Erro de conexão com SQL Server: {str(e)}'
+        logging.error(error_msg)
+        logging.error('Verifique: 1) Firewall do Azure SQL permite conexões do Azure Functions, 2) Connection string está correta, 3) Servidor está acessível')
+        raise
     except Exception as e:
         logging.error(f'Erro ao extrair informações de criptomoedas: {str(e)}')
         raise
