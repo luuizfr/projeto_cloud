@@ -34,6 +34,7 @@ def connect_with_retry(connect_params, max_retries=3, retry_delay=5):
 
 @app.schedule(schedule="0 */10 * * * *", arg_name="myTimer", run_on_startup=True, use_monitor=False)
 def timer_coleta_cripto(myTimer: func.TimerRequest) -> None:
+    """Coleta de informações de criptomoedas a cada 10 minutos"""
     logging.info('Extração de informações de criptomoedas iniciada')
 
     url = "https://api.coingecko.com/api/v3/simple/price?ids=bitcoin,ethereum,solana&vs_currencies=usd"
