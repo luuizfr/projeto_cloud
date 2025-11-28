@@ -132,9 +132,7 @@ _Visualização detalhada do dashboard com análises e métricas das criptomoeda
 
 ### Link para Vídeo de Demo
 
-- [ ] YouTube, Stream ou outra plataforma de vídeo
-- [ ] Demonstração do funcionamento do sistema
-- [ ] Navegação pelos dashboards
+- [Vídeo de demonstração](https://youtu.be/ec4J22fwEpE)
 
 ## Referências
 
